@@ -1,0 +1,2 @@
+# zypi
+Zypper patch infos
