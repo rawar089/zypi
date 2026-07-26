@@ -1,5 +1,6 @@
 mod data;
 
+use std::cmp::Reverse;
 use eframe::egui;
 use data::{Patch, ZypperError};
 use data::list_zypper_patches;
@@ -110,7 +111,20 @@ impl RecordBrowserApp {
     }
 
     fn sort_patches(patches: &mut [Patch]) {
-        patches.sort_by_cached_key(|patch| patch.name.to_lowercase());
+        patches.sort_by_cached_key(|patch| {
+            let is_needed = patch
+                .status
+                .as_deref()
+                .is_some_and(|status| status.eq_ignore_ascii_case("needed"));
+            let (name, number) = patch
+                .name
+                .rsplit_once('-')
+                .unwrap_or((&patch.name,"0"));
+            let number = number
+                .parse::<u64>()
+                .unwrap_or(0);
+            (!is_needed, name.to_lowercase(), Reverse(number))
+        });
     }
 }
 
@@ -189,7 +203,13 @@ impl eframe::App for RecordBrowserApp {
                             .as_deref()
                             .unwrap_or_default()
                             .to_lowercase()
-                            .contains(&query)
+                            .starts_with(&query)
+                            && !patch
+                            .status
+                            .as_deref()
+                            .unwrap_or_default()
+                            .to_lowercase()
+                            .starts_with(&query)
                             && !patch.summary.to_lowercase().contains(&query)
                             && !patch.description.to_lowercase().contains(&query)
                         {
@@ -204,7 +224,15 @@ impl eframe::App for RecordBrowserApp {
                         ui.horizontal(|ui| {
                             ui.label(patch.category.as_deref().unwrap_or("Uncategorized"));
                             ui.separator();
-                            ui.label(patch.status.as_deref().unwrap_or("Unknown"));
+                            match &patch.status {
+                                Some(status) => if status == "needed" {
+                                    ui.colored_label(egui::Color32::RED, status)
+                                } else {
+                                    ui.label(status)
+                                },
+                                None => ui.label("Unknown"),
+                            }
+
                         });
                         ui.label(&patch.summary);
                         ui.add_space(6.0);
