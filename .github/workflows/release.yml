@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      TARGET: x86_64-unknown-linux-gnu
+      BINARY_NAME: zypi-linux-x86_64
+
+    steps:
+      - name: Code checkout
+        uses: actions/checkout@v4
+
+      - name: Rust Toolchain setup
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ env.TARGET }}
+
+
+      - name: Build
+        run: |
+          mkdir -p dist
+          cargo build --release --target ${{ env.TARGET }}
+
+          tar -C target/${{ env.TARGET }}/release -czf dist/${{ env.BINARY_NAME }}.tar.gz zypi
+          sha256sum dist/${{ env.BINARY_NAME }}.tar.gz > dist/${{ env.BINARY_NAME }}.tar.gz.sha256
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ env.BINARY_NAME }}
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+
+      - name: Add to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.tar.gz
+            dist/*.sha256
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
