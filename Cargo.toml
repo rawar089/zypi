@@ -2,6 +2,9 @@
 name = "zypi"
 version = "0.3.0"
 edition = "2024"
+authors = ["rawar089"]
+license = "GPLV3"
+rust-version = "1.95.0"
 
 [dependencies]
 eframe = "0.36.1"
