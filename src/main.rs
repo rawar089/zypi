@@ -38,6 +38,75 @@ impl PatchData for ZypperCommandData {
     }
 }
 
+/// Create string with all patch details for the clipboard.
+fn patch_as_text(patch: &Patch) -> String {
+    use std::fmt::Write as _;
+
+    let mut text = String::new();
+    let _ = writeln!(text, "{}", patch.name);
+    let _ = writeln!(text, "Kind: {}", patch.kind);
+    let _ = writeln!(text, "Edition: {}", patch.edition);
+    let _ = writeln!(text, "Architecture: {}", patch.arch);
+    let _ = writeln!(
+        text,
+        "Status: {}",
+        patch.status.as_deref().unwrap_or("Unknown")
+    );
+    let _ = writeln!(
+        text,
+        "Category: {}",
+        patch.category.as_deref().unwrap_or("Uncategorized")
+    );
+    let _ = writeln!(
+        text,
+        "Severity: {}",
+        patch.severity.as_deref().unwrap_or("Unspecified")
+    );
+    let _ = writeln!(
+        text,
+        "Repository: {} <{}>",
+        patch.source.alias, patch.source.url
+    );
+    let _ = writeln!(text, "Issue date: {}", patch.issue_date.date);
+    let _ = writeln!(text, "\nSummary\n{}", patch.summary);
+    let _ = writeln!(text, "\nDescription\n{}", patch.description);
+    if !patch.license.is_empty() {
+        let _ = writeln!(text, "\nLicense\n{}", patch.license);
+    }
+    if !patch.issue_list.issue.is_empty() {
+        let _ = writeln!(text, "\nIssues");
+        for issue in &patch.issue_list.issue {
+            let _ = writeln!(
+                text,
+                "- {} {}: {}\n  {}",
+                issue.issue_type, issue.issue_id, issue.title, issue.href
+            );
+        }
+    }
+    text
+}
+
+/// Create string with summary patch details for the clipboard.
+fn patch_summary_text(patch: &Patch) -> String {
+    use std::fmt::Write as _;
+
+    let mut text = String::new();
+    let _ = writeln!(text, "{}", patch.name);
+    let _ = writeln!(
+        text,
+        "Category: {}",
+        patch.category.as_deref().unwrap_or("Uncategorized")
+    );
+    let _ = writeln!(
+        text,
+        "Severity: {}",
+        patch.severity.as_deref().unwrap_or("Unspecified")
+    );
+    let _ = writeln!(text, "Issue date: {}", patch.issue_date.date);
+    let _ = writeln!(text, "\nSummary\n{}", patch.summary);
+    text
+}
+
 struct RecordBrowserApp {
     source: Box<dyn PatchData>,
     patches: Vec<Patch>,
@@ -244,71 +313,130 @@ impl eframe::App for RecordBrowserApp {
         egui::CentralPanel::default().show(ui, |ui| {
             egui::ScrollArea::vertical().show(ui, |ui| {
                 if let Some(patch) = self.selected().cloned() {
-                    ui.heading(&patch.name);
-                    ui.separator();
-                    ui.add_space(6.0);
-
-                    egui::Grid::new("patch_details")
-                        .num_columns(2)
-                        .spacing([16.0, 8.0])
-                        .show(ui, |ui| {
-                            ui.strong("Name");
-                            ui.label(&patch.name);
-                            ui.end_row();
-                            ui.strong("Kind");
-                            ui.label(&patch.kind);
-                            ui.end_row();
-                            ui.strong("Edition");
-                            ui.label(&patch.edition);
-                            ui.end_row();
-                            ui.strong("Architecture");
-                            ui.label(&patch.arch);
-                            ui.end_row();
-                            ui.strong("Status");
-                            ui.label(patch.status.as_deref().unwrap_or("Unknown"));
-                            ui.end_row();
-                            ui.strong("Category");
-                            ui.label(patch.category.as_deref().unwrap_or("Uncategorized"));
-                            ui.end_row();
-                            ui.strong("Severity");
-                            ui.label(patch.severity.as_deref().unwrap_or("Unspecified"));
-                            ui.end_row();
-                            ui.strong("Repository");
-                            ui.hyperlink_to(&patch.source.alias, &patch.source.url);
-                            ui.end_row();
-                            ui.strong("Issue date");
-                            ui.label(&patch.issue_date.date);
-                            ui.end_row();
-                        });
-
-                    ui.add_space(16.0);
-                    ui.strong("Summary");
-                    ui.label(&patch.summary);
-                    ui.add_space(12.0);
-                    ui.strong("Description");
-                    ui.label(&patch.description);
-                    ui.add_space(12.0);
-                    if !&patch.license.is_empty() {
-                        ui.strong("License");
-                        ui.label(&patch.license);
-                    }
-                    ui.add_space(12.0);
-                    ui.strong("Issues");
-                    ui.add_space(12.0);
-                    for issue in &patch.issue_list.issue {
-                        ui.horizontal(|ui| {
-                            ui.label(&issue.issue_type);
-                            ui.label(&issue.issue_id);
-                        });
-                        ui.hyperlink_to(&issue.title, &issue.href);
-                        ui.add_space(10.0);
-                    }
+                    // A click-sensing background Ui so the whole details pane,
+                    // including the gaps between widgets, answers right-clicks.
+                    let details = ui.scope_builder(
+                        egui::UiBuilder::new().sense(egui::Sense::click()),
+                        |ui| Self::patch_details(ui, &patch),
+                    );
+                    Self::patch_copy_menu(&details.response, &patch);
                 } else {
                     ui.centered_and_justified(|ui| {
                         ui.label("Select a patch to view its details.");
                     });
                 }
             });
+        });
+    }
+}
+
+impl RecordBrowserApp {
+    fn patch_details(ui: &mut egui::Ui, patch: &Patch) {
+        ui.horizontal(|ui| {
+            ui.heading(&patch.name);
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if ui
+                    .button("Copy")
+                    .on_hover_text("Copy all details as plain text")
+                    .clicked()
+                {
+                    ui.ctx().copy_text(patch_as_text(patch));
+                }
+            });
+        });
+        ui.separator();
+        ui.add_space(6.0);
+
+        egui::Grid::new("patch_details")
+            .num_columns(2)
+            .spacing([16.0, 8.0])
+            .show(ui, |ui| {
+                ui.strong("Name");
+                ui.label(&patch.name);
+                ui.end_row();
+                ui.strong("Kind");
+                ui.label(&patch.kind);
+                ui.end_row();
+                ui.strong("Edition");
+                ui.label(&patch.edition);
+                ui.end_row();
+                ui.strong("Architecture");
+                ui.label(&patch.arch);
+                ui.end_row();
+                ui.strong("Status");
+                ui.label(patch.status.as_deref().unwrap_or("Unknown"));
+                ui.end_row();
+                ui.strong("Category");
+                ui.label(patch.category.as_deref().unwrap_or("Uncategorized"));
+                ui.end_row();
+                ui.strong("Severity");
+                ui.label(patch.severity.as_deref().unwrap_or("Unspecified"));
+                ui.end_row();
+                ui.strong("Repository");
+                ui.hyperlink_to(&patch.source.alias, &patch.source.url);
+                ui.end_row();
+                ui.strong("Issue date");
+                ui.label(&patch.issue_date.date);
+                ui.end_row();
+            });
+
+        ui.add_space(16.0);
+        ui.strong("Summary");
+        ui.label(&patch.summary);
+        ui.add_space(12.0);
+        ui.strong("Description");
+        ui.label(&patch.description);
+        ui.add_space(12.0);
+        if !patch.license.is_empty() {
+            ui.strong("License");
+            ui.label(&patch.license);
+        }
+        ui.add_space(12.0);
+        ui.strong("Issues");
+        ui.add_space(12.0);
+        for issue in &patch.issue_list.issue {
+            ui.horizontal(|ui| {
+                ui.label(&issue.issue_type);
+                ui.label(&issue.issue_id);
+            });
+            ui.hyperlink_to(&issue.title, &issue.href);
+            ui.add_space(10.0);
+        }
+    }
+
+    /// Right click menu for the details pane with clipboard operations. 
+    fn patch_copy_menu(response: &egui::Response, patch: &Patch) {
+        response.context_menu(|ui| {
+            if ui.button("Copy all details").clicked() {
+                ui.ctx().copy_text(patch_as_text(patch));
+                ui.close();
+            }
+            if ui.button("Copy summary").clicked() {
+                ui.ctx().copy_text(patch_summary_text(patch));
+                ui.close();
+            }
+            if ui.button("Copy description").clicked() {
+                ui.ctx().copy_text(patch.description.clone());
+                ui.close();
+            }
+
+            ui.separator();
+
+            let has_issues = !patch.issue_list.issue.is_empty();
+            if ui
+                .add_enabled(has_issues, egui::Button::new("Copy issue links"))
+                .clicked()
+            {
+                let links = patch
+                    .issue_list
+                    .issue
+                    .iter()
+                    .map(|issue| issue.href.as_str())
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                ui.ctx().copy_text(links);
+                ui.close();
+            }
         });
     }
 }
