@@ -4507,7 +4507,7 @@ dependencies = [
 
 [[package]]
 name = "zypi"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "eframe",
  "quick-xml 0.42.0",

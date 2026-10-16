@@ -2,7 +2,7 @@
 
 ## Zypper patch infos
 A small desktop viewer for patches `zypper` knows about on openSUSE and SLE
-systems. zypi only reads information from the system; it never installs, removes or refreshes anything.
+systems. It only reads information from the system; it never installs, removes or refreshes anything.
 
 It runs `zypper --xmlout lp` in the background and
 displays the current information, so everything zypper reports about a
@@ -28,7 +28,7 @@ The left side of the toolbar shows some statistics for the currently loaded patc
 
 - `total` number of patches in the list
 - `security`, `recommended`, `optional` number of patches per category
-- `needed` number of patches that still pending to be installed on this
+- `needed` number of patches that are still pending to be installed on this
   system. The counter turns red as soon as at least one patch is needed.
 
 The buttons on the right side have the following function:
@@ -51,7 +51,7 @@ The left pane lists the patches. Each entry shows:
 - the patch name, e.g. `openSUSE-Leap-16.0-1856`
 - the category (`security`, `recommended`, `optional`, …) and the status
   (`needed`, `applied`, `not-needed`, …). A `needed` status is shown in red.
-- the one line patch summary
+- the one-line patch summary
 
 Patches with status `needed` are sorted to the top. All other patches follow,
 grouped by name and with the newest patch number first. Click an entry to show
@@ -64,7 +64,7 @@ type. The search is case-insensitive and a patch is shown if
 - its name, summary or description contains the search text, or
 - its category or status starts with the search text.
 
-For example, `needed` shows all needed patches, `sec` shows all security
+For example, `need` shows all patches having needed as category, `sec` shows all security
 patches and `CVE-2026-38752` finds the patch fixing that CVE.
 
 
@@ -72,7 +72,7 @@ patches and `CVE-2026-38752` finds the patch fixing that CVE.
 
 The right pane shows all information zypper provides for the selected patch:
 
-- `Name`, `Kind`, `Edition`, `Architecture`, `Status`, `Category` and `Severity of the patch
+- `Name`, `Kind`, `Edition`, `Architecture`, `Status`, `Category` and `Severity` of the patch
 - `Repository` the alias of the repository providing the patch. Clicking
   it opens the repository URL in the web browser.
 - `Issue date` the release date of the patch
@@ -108,7 +108,7 @@ Rust **1.95 or newer** is required due to the minimum supported Rust version of 
 
 
 - The `zypper` command in `PATH`. It is installed by default on openSUSE and SLE systems.
-- Meaningful results need up to date zypper repository metadata. Refreshing needs root,
+- Meaningful results need up-to date zypper repository metadata. Refreshing needs root,
   so run `sudo zypper refresh` occasionally. No refresh of the metadata is done by zypi.
 - A graphical session, either Wayland or X11.
 
