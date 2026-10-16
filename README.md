@@ -18,8 +18,8 @@ Patches with status `needed` are highlighted in red and appear on top of the pat
 The window is split into a toolbar, a patch list on the left and a details pane
 on the right.
 
-<p align="center">
-<img src="Screenshots/zypi-window.png" width="800" alt="zypi main window">
+<p>
+<img src="Screenshots/zypi-window.png"  alt="zypi main window">
 </p>
 
 #### Toolbar pane
