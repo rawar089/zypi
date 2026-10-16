@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container:
+      image: opensuse/tumbleweed:latest
     env:
       TARGET: x86_64-unknown-linux-gnu
       BINARY_NAME: zypi-linux-x86_64
@@ -16,11 +18,15 @@ jobs:
       - name: Code checkout
         uses: actions/checkout@v4
 
-      - name: Rust Toolchain setup
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ env.TARGET }}
-
+      - name: Install build dependencies
+        run: |
+          zypper --non-interactive refresh
+          zypper --non-interactive install --no-recommends \
+            cargo \
+            rust \
+            gcc \
+            git \
+            pkg-config
 
       - name: Build
         run: |
